@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Estudo Organizado | Gestão Escolar</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+<style>
+    :root{--primary:#6366f1;--secondary:#10b981;--danger:#f43f5e;--warning:#f59e0b;--dark:#0f172a;--bg:#f8fafc;--white:#fff;--btn-add-line:#3b82f6;--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px)}
+    body{font-family:'Poppins',sans-serif;background:var(--bg);margin:0;color:var(--dark);-webkit-tap-highlight-color:transparent}
+    header{background:linear-gradient(135deg,var(--dark) 0,#1e293b 100%);color:white;padding:calc(25px + var(--safe-top)) 25px 25px 25px;text-align:center;border-bottom:4px solid var(--primary)}
+    .tab-container{display:flex;justify-content:center;background:var(--white);box-shadow:0 2px 10px rgba(0,0,0,0.05);position:sticky;top:0;z-index:1000;overflow-x:auto;white-space:nowrap}
+    .tab-container::-webkit-scrollbar{display:none}
+    .tab-button{padding:15px 20px;border:0;background:0;cursor:pointer;font-weight:600;color:#64748b;transition:.3s;border-bottom:3px solid transparent;flex-shrink:0}
+    .tab-button.active{color:var(--primary);border-bottom-color:var(--primary)}
+    .content-section{display:none;padding:20px;max-width:1200px;margin:auto;animation:fadeIn .3s ease;padding-bottom:calc(40px + var(--safe-bottom))}
+    .content-section.active{display:block}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    .card{background:var(--white);padding:20px;border-radius:15px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);margin-bottom:20px}
+    h2{font-size:1rem;text-transform:uppercase;color:var(--primary);border-bottom:1px solid #f1f5f9;padding-bottom:10px;margin-top:0}
+    .input-style{padding:10px;border-radius:8px;border:1px solid #ddd;width:100%;box-sizing:border-box;margin-bottom:10px;font-family:inherit;font-size:16px}
+    .btn-main{padding:12px 20px;border:0;border-radius:8px;cursor:pointer;font-weight:600;transition:.2s;color:white;display:inline-flex;align-items:center;justify-content:center;gap:5px;width:100%}
+    .btn-primary{background:var(--primary)}
+    .btn-danger{background:var(--danger)}
+    .btn-secondary{background:var(--secondary)}
+    .btn-add-row{background:var(--btn-add-line)}
+    .btn-warning{background:var(--warning)}
+    .modal{display:none;position:fixed;z-index:2000;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px)}
+    .modal-content{background:white;margin:10% auto;padding:25px;border-radius:20px;width:90%;max-width:500px;position:relative;max-height:80vh;overflow-y:auto}
+    .close-modal{position:absolute;right:20px;top:15px;font-size:24px;cursor:pointer;color:#64748b}
+    .table-container{overflow-x:auto;border-radius:12px;border:1px solid #e2e8f0}
+    table{width:100%;border-collapse:collapse;min-width:700px}
+    th{background:#f1f5f9;padding:12px;font-size:.8rem;border:1px solid #e2e8f0;text-align:center}
+    td{border:1px solid #e2e8f0;padding:5px;position:relative}
+    .schedule-cell{display:flex;flex-direction:column;min-height:60px}
+    .editable{width:100%;flex-grow:1;outline:0;padding:5px;box-sizing:border-box;text-align:center;border:0;background:transparent;font-size:.85rem;min-height:30px}
+    .calc-body{max-width:320px;margin:auto;background:#1e293b;padding:20px;border-radius:20px}
+    #calc-display{width:100%;height:60px;background:#0f172a;border:0;color:white;text-align:right;padding:10px;font-size:1.5rem;border-radius:10px;margin-bottom:15px}
+    .calc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    .calc-btn{padding:18px;border:0;border-radius:12px;cursor:pointer;font-weight:600;background:#334155;color:white;font-size:1.1rem}
+    .list-item{display:flex;justify-content:space-between;align-items:center;padding:12px;background:#f8fafc;border-radius:10px;margin-bottom:8px;border-left:4px solid var(--primary)}
+    .cal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}
+    .cal-task{color:white;padding:3px 6px;border-radius:4px;font-size:.7rem;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    
+    @media print{
+        header, .tab-container, .no-print, .btn-main, .close-modal, input[type="color"] {display:none !important}
+        .content-section {display:none !important}
+        .content-section.active {display:block !important; width:100% !important; margin:0 !important; padding:0 !important}
+        .card {box-shadow:none !important; padding:0 !important; border:none !important}
+        * {-webkit-print-color-adjust:exact !important; print-color-adjust:exact !important}
+        table {width:100% !important; border:1px solid #000 !important}
+        th, td {border:1px solid #000 !important; color: black !important}
+    }
+</style>
+</head>
+<body>
+
+<header><h1>ESTUDO ORGANIZADO</h1></header>
+
+<div class="tab-container no-print">
+    <button class="tab-button active" onclick="openTab(event,'aba-login')">Conta</button>
+    <button class="tab-button" onclick="openTab(event,'aba-geral')">Início</button>
+    <button class="tab-button" onclick="openTab(event,'aba-calendario')">Calendário</button>
+    <button class="tab-button" onclick="openTab(event,'aba-horario')">Horário</button>
+    <button class="tab-button" onclick="openTab(event,'aba-medias')">Médias</button>
+    <button class="tab-button" onclick="openTab(event,'aba-calculadora')">Calculadora</button>
+    <button class="tab-button" onclick="toggleHelp()" style="color:var(--warning)">Ajuda</button>
+</div>
+
+<div id="helpModal" class="modal no-print">
+    <div class="modal-content">
+        <span class="close-modal" onclick="toggleHelp()">&times;</span>
+        <h2 style="color:var(--dark);border-bottom:2px solid var(--warning)">Dicas de Utilização</h2>
+        <div style="font-size:.9rem;line-height:1.6;color:#475569">
+            <p><strong>Conta & Nuvem:</strong> Faz login para sincronizar os teus dados.</p>
+            <p><strong>Edição:</strong> Clica no ícone ✎ nas tarefas para editar.</p>
+            <p><strong>Horário:</strong> Muda a cor de fundo das células com o círculo colorido.</p>
+            <p><strong>Impressão:</strong> Usa os botões azuis no fundo das páginas de Horário e Calendário.</p>
+        </div>
+        <button onclick="toggleHelp()" class="btn-main btn-primary" style="width:100%;margin-top:15px">Entendido!</button>
+    </div>
+</div>
+
+<section id="aba-login" class="content-section active">
+    <div class="card" style="text-align:center">
+        <h2>Sincronização & Conta</h2>
+        <div id="logged-out-view">
+            <p>Faz login com o Google para ativar a memória cloud.</p>
+            <div style="display:flex;justify-content:center;margin-top:20px">
+                <div id="g_id_onload" data-client_id="993795874724-0p334s8l4dugg653e52orn61hh8vgi02.apps.googleusercontent.com" data-callback="handleCredentialResponse"></div>
+                <div class="g_id_signin" data-type="standard"></div>
+            </div>
+        </div>
+        <div id="logged-in-view" style="display:none">
+            <div id="user-info" style="margin-bottom:15px;font-weight:600"></div>
+            <button onclick="logout()" class="btn-main btn-danger">Sair</button>
+        </div>
+    </div>
+</section>
+
+<section id="aba-geral" class="content-section">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px">
+        <div class="card">
+            <h2>Tarefas & Alertas</h2>
+            <input type="text" id="task-name" placeholder="O que tens de fazer?" class="input-style">
+            <input type="date" id="task-date" class="input-style">
+            <select id="task-priority" class="input-style">
+                <option value="low">Prioridade Baixa</option>
+                <option value="medium">Média</option>
+                <option value="high">Urgente</option>
+            </select>
+            <button onclick="addTask()" class="btn-main btn-primary">Adicionar Tarefa</button>
+            <div id="task-list" style="margin-top:15px"></div>
+        </div>
+        <div class="card">
+            <h2>Notas Rápidas</h2>
+            <textarea id="file-notes" class="input-style" placeholder="Notas e links..." style="height:250px;resize:none" oninput="saveData()"></textarea>
+        </div>
+    </div>
+</section>
+
+<section id="aba-calendario" class="content-section">
+    <div class="card">
+        <div class="cal-header">
+            <button onclick="changeMonth(-1)" class="btn-main btn-secondary no-print" style="width:auto">&larr;</button>
+            <h2 id="cal-month-year" style="border:0;margin:0;padding:0">Mês Ano</h2>
+            <button onclick="changeMonth(1)" class="btn-main btn-secondary no-print" style="width:auto">&rarr;</button>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead><tr><th>Seg</th><th>Ter</th><th>Qua</th><th>Qui</th><th>Sex</th><th>Sáb</th><th>Dom</th></tr></thead>
+                <tbody id="cal-body"></tbody>
+            </table>
+        </div>
+        <button onclick="window.print()" class="btn-main btn-primary no-print" style="margin-top:15px">Imprimir Calendário</button>
+    </div>
+</section>
+
+<section id="aba-horario" class="content-section">
+    <div class="card">
+        <h2>Horário Semanal</h2>
+        <div class="table-container">
+            <table>
+                <thead><tr><th>Hora</th><th>Segunda</th><th>Terça</th><th>Quarta</th><th>Quinta</th><th>Sexta</th><th class="no-print"></th></tr></thead>
+                <tbody id="schedule-body"></tbody>
+            </table>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:15px">
+            <button onclick="addScheduleRow()" class="btn-main btn-secondary no-print">+ Bloco</button>
+            <button onclick="window.print()" class="btn-main btn-primary no-print">Imprimir Horário</button>
+        </div>
+    </div>
+</section>
+
+<section id="aba-medias" class="content-section">
+    <div class="card">
+        <h2>Médias</h2>
+        <input type="text" id="subject-name" placeholder="Nome da Disciplina" class="input-style">
+        <div id="avg-container"></div>
+        <button onclick="addAvgRow()" class="btn-main btn-add-row" style="margin-bottom:10px">+ Adicionar Nota</button>
+        <button onclick="calcAverage()" class="btn-main btn-secondary">Calcular Média</button>
+        <div id="final-avg" style="margin:15px 0;font-weight:bold;font-size:1.2rem">Média: --</div>
+        <button onclick="saveFinalGrade()" class="btn-main btn-primary">Guardar Resultado</button>
+        <div id="saved-grades-list" style="margin-top:20px"></div>
+    </div>
+</section>
+
+<section id="aba-calculadora" class="content-section">
+    <div class="calc-body">
+        <input type="text" id="calc-display" value="0" readonly>
+        <div class="calc-grid">
+            <button class="calc-btn btn-danger" onclick="clearCalc()">C</button>
+            <button class="calc-btn" onclick="backspace()">←</button>
+            <button class="calc-btn" onclick="insert('/')">/</button>
+            <button class="calc-btn" onclick="insert('*')">X</button>
+            <button class="calc-btn" onclick="insert('7')">7</button>
+            <button class="calc-btn" onclick="insert('8')">8</button>
+            <button class="calc-btn" onclick="insert('9')">9</button>
+            <button class="calc-btn" onclick="insert('-')">-</button>
+            <button class="calc-btn" onclick="insert('4')">4</button>
+            <button class="calc-btn" onclick="insert('5')">5</button>
+            <button class="calc-btn" onclick="insert('6')">6</button>
+            <button class="calc-btn" onclick="insert('+')">+</button>
+            <button class="calc-btn" onclick="insert('1')">1</button>
+            <button class="calc-btn" onclick="insert('2')">2</button>
+            <button class="calc-btn" onclick="insert('3')">3</button>
+            <button class="calc-btn btn-secondary" style="grid-row:span 2" onclick="equal()">=</button>
+            <button class="calc-btn" style="grid-column:span 2" onclick="insert('0')">0</button>
+            <button class="calc-btn" onclick="insert('.')">.</button>
+        </div>
+    </div>
+</section>
+
+<script>
+// --- CONFIGURAÇÃO FIREBASE ---
+const firebaseConfig = {
+    apiKey: "AIzaSyB_cOsVIStVPghcRtd6qxaThhZ0cGQH3CQ",
+    authDomain: "estudo-organizado-6d92b.firebaseapp.com",
+    databaseURL: "https://estudo-organizado-6d92b-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "estudo-organizado-6d92b",
+    storageBucket: "estudo-organizado-6d92b.firebasestorage.app",
+    messagingSenderId: "304160532384",
+    appId: "1:304160532384:web:bb386b9ab77e7d0e02a6c5"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let currentUser = "local_user";
+let currentMonth = new Date().getMonth();
+let currentYear = new Date().getFullYear();
+
+// === AJUDA ===
+function toggleHelp(){
+    const modal = document.getElementById('helpModal');
+    modal.style.display = (modal.style.display === 'block') ? 'none' : 'block';
+}
+
+// === LOGIN ===
+function handleCredentialResponse(response){
+    const payload = JSON.parse(atob(response.credential.split('.')[1]));
+    currentUser = payload.sub;
+    document.getElementById('logged-out-view').style.display='none';
+    document.getElementById('logged-in-view').style.display='block';
+    document.getElementById('user-info').innerText = "Olá, " + payload.name;
+    loadData();
+}
+function logout(){ location.reload(); }
+
+// === DADOS ===
+function saveData(){
+    const data = {
+        tasks: document.getElementById('task-list').innerHTML,
+        schedule: document.getElementById('schedule-body').innerHTML,
+        grades: document.getElementById('saved-grades-list').innerHTML,
+        fileNotes: document.getElementById('file-notes').value
+    };
+    localStorage.setItem('estudo_data_' + currentUser, JSON.stringify(data));
+    if(currentUser !== "local_user") db.ref('users/' + currentUser).set(data);
+}
+
+function loadData(){
+    if(currentUser !== "local_user") {
+        db.ref('users/' + currentUser).once('value').then(snap => {
+            if(snap.exists()) applyData(snap.val());
+            else fallback();
+        }).catch(() => fallback());
+    } else fallback();
+}
+
+function applyData(data){
+    document.getElementById('task-list').innerHTML = data.tasks || "";
+    document.getElementById('schedule-body').innerHTML = data.schedule || "";
+    document.getElementById('saved-grades-list').innerHTML = data.grades || "";
+    document.getElementById('file-notes').value = data.fileNotes || "";
+    renderCalendar();
+}
+
+function fallback(){
+    const s = localStorage.getItem('estudo_data_' + currentUser);
+    if(s) applyData(JSON.parse(s));
+    else renderCalendar();
+}
+
+// === TAREFAS ===
+function addTask(){
+    const name = document.getElementById('task-name').value;
+    const date = document.getElementById('task-date').value;
+    const prio = document.getElementById('task-priority').value;
+    if(!name) return;
+
+    const color = prio==='high'?'var(--danger)':(prio==='medium'?'var(--warning)':'var(--secondary)');
+    const div = document.createElement('div');
+    div.className = "list-item";
+    div.style.borderLeftColor = color;
+    div.setAttribute('data-date', date);
+    div.setAttribute('data-name', name);
+    div.setAttribute('data-color', color);
+
+    div.innerHTML = `
+        <div>
+            <div style="font-weight:600" class="t-name">${name}</div>
+            <div style="font-size:0.75rem; color:#64748b;" class="t-date">📅 ${date || 'Sem data'}</div>
+        </div>
+        <div style="display:flex; gap:8px" class="no-print">
+            <button onclick="editTask(this)" class="btn-main btn-warning" style="width:auto; padding:5px 10px">✎</button>
+            <button onclick="this.parentElement.parentElement.remove(); saveData(); renderCalendar();" class="btn-main btn-danger" style="width:auto; padding:5px 10px">X</button>
+        </div>`;
+    document.getElementById('task-list').prepend(div);
+    document.getElementById('task-name').value = "";
+    saveData(); renderCalendar();
+}
+
+function editTask(btn){
+    const item = btn.closest('.list-item');
+    const newName = prompt("Novo nome:", item.getAttribute('data-name'));
+    if(!newName) return;
+    const newDate = prompt("Nova data (AAAA-MM-DD):", item.getAttribute('data-date'));
+    const newPrio = prompt("Prioridade (1-Baixa, 2-Média, 3-Urgente):", "1");
+
+    let newColor = 'var(--secondary)';
+    if(newPrio === '2') newColor = 'var(--warning)';
+    if(newPrio === '3') newColor = 'var(--danger)';
+
+    item.setAttribute('data-name', newName);
+    item.setAttribute('data-date', newDate);
+    item.setAttribute('data-color', newColor);
+    item.style.borderLeftColor = newColor;
+    item.querySelector('.t-name').innerText = newName;
+    item.querySelector('.t-date').innerText = "📅 " + (newDate || 'Sem data');
+    
+    saveData(); renderCalendar();
+}
+
+// === HORÁRIO ===
+function addScheduleRow(){
+    const tr = document.createElement('tr');
+    let html = `<td><input type="text" class="editable" placeholder="00:00" oninput="saveData()"></td>`;
+    for(let i=0; i<5; i++){
+        html += `<td>
+            <div class="schedule-cell">
+                <div contenteditable="true" class="editable" oninput="saveData()"></div>
+                <input type="color" class="no-print" style="width:20px;height:20px;border:none;background:none;margin:auto;cursor:pointer;" 
+                oninput="this.closest('td').style.backgroundColor = this.value; saveData();">
+            </div>
+        </td>`;
+    }
+    html += `<td class="no-print"><button onclick="this.parentElement.parentElement.remove(); saveData();" style="color:red;border:0;background:0">X</button></td>`;
+    tr.innerHTML = html;
+    document.getElementById('schedule-body').appendChild(tr);
+    saveData();
+}
+
+// === CALENDÁRIO ===
+function openTab(e, id){
+    document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    if(e) e.currentTarget.classList.add('active');
+    if(id==='aba-calendario') renderCalendar();
+}
+
+function renderCalendar(){
+    const monthNames = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+    document.getElementById('cal-month-year').innerText = `${monthNames[currentMonth]} ${currentYear}`;
+    const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const tbody = document.getElementById('cal-body');
+    tbody.innerHTML = '';
+    let date = 1;
+    let startDay = (firstDay === 0) ? 6 : firstDay - 1;
+    for (let i = 0; i < 6; i++) {
+        let row = document.createElement('tr');
+        for (let j = 0; j < 7; j++) {
+            let cell = document.createElement('td');
+            cell.style.height = "70px";
+            if (i === 0 && j < startDay) {} 
+            else if (date > daysInMonth) {} 
+            else {
+                cell.innerHTML = `<div style="font-size:0.7rem;text-align:right">${date}</div>`;
+                const ds = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(date).padStart(2,'0')}`;
+                document.querySelectorAll('#task-list .list-item').forEach(t => {
+                    if(t.getAttribute('data-date') === ds) {
+                        cell.innerHTML += `<div class="cal-task" style="background:${t.getAttribute('data-color')}">${t.getAttribute('data-name')}</div>`;
+                    }
+                });
+                date++;
+            }
+            row.appendChild(cell);
+        }
+        tbody.appendChild(row);
+        if (date > daysInMonth) break;
+    }
+}
+function changeMonth(dir){ currentMonth += dir; if(currentMonth>11){currentMonth=0;currentYear++;} if(currentMonth<0){currentMonth=11;currentYear--;} renderCalendar(); }
+
+// === MÉDIAS ===
+function addAvgRow(){
+    const div = document.createElement('div');
+    div.style = "display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:10px;margin-bottom:10px";
+    div.innerHTML = `<input type="text" class="input-style" placeholder="Avaliação"><input type="number" class="input-style avg-grade" placeholder="Nota"><input type="number" class="input-style avg-weight" placeholder="%"><button onclick="this.parentElement.remove()" class="btn-main btn-danger" style="width:auto">X</button>`;
+    document.getElementById('avg-container').appendChild(div);
+}
+function calcAverage(){
+    let nt=0, wt=0;
+    document.querySelectorAll('.avg-grade').forEach((g,i) => {
+        const n=parseFloat(g.value), w=parseFloat(document.querySelectorAll('.avg-weight')[i].value);
+        if(!isNaN(n)&&!isNaN(w)){ nt+=(n*(w/100)); wt+=(w/100); }
+    });
+    document.getElementById('final-avg').innerText = "Média: " + (wt > 0 ? (nt/wt).toFixed(2) : "--");
+}
+function saveFinalGrade(){
+    const sub = document.getElementById('subject-name').value || "Disciplina";
+    const div = document.createElement('div');
+    div.className = "list-item";
+    div.innerHTML = `<div>${sub}: ${document.getElementById('final-avg').innerText}</div><button onclick="this.parentElement.remove();saveData()" class="btn-main btn-danger no-print" style="width:auto">X</button>`;
+    document.getElementById('saved-grades-list').prepend(div);
+    saveData();
+}
+
+// === CALCULADORA ===
+const disp = document.getElementById('calc-display');
+function insert(v){ disp.value = disp.value === "0" ? v : disp.value + v; }
+function clearCalc(){ disp.value = "0"; }
+function backspace(){ disp.value = disp.value.slice(0,-1) || "0"; }
+function equal(){ try{ disp.value = eval(disp.value); } catch { disp.value = "Erro"; } }
+
+window.onload = () => { 
+    fallback(); 
+    if(document.getElementById('schedule-body').children.length === 0){
+        for(let i=0; i<6; i++) addScheduleRow();
+    }
+};
+</script>
+</body>
+</html>
